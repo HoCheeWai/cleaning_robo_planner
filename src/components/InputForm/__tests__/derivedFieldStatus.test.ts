@@ -3,7 +3,6 @@ import * as fc from 'fast-check';
 import {
   getDerivedFieldStatus,
   DERIVED_FIELD_DEPENDENCIES,
-  DerivedFieldStatus,
 } from '../derivedFieldStatus';
 import { DEFAULT_INPUTS } from '../../../types/defaults';
 import { CalculatorInputs } from '../../../types';
