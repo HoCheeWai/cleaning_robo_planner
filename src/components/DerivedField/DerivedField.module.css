@@ -3,6 +3,17 @@
   flex-direction: column;
   gap: 4px;
   margin-bottom: 12px;
+  border-left: 3px solid transparent;
+  padding-left: 8px;
+  transition: border-color 0.2s;
+}
+
+.nonDefaultParents {
+  border-left-color: #d97706;
+}
+
+.overridden {
+  border-left-color: #3b82f6;
 }
 
 .labelRow {
@@ -94,6 +105,22 @@
   font-size: 0.65rem;
   background: #f0fdf4;
   color: #16a34a;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.indicatorBadge {
+  font-size: 0.65rem;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.overriddenBadge {
+  font-size: 0.65rem;
+  background: #dbeafe;
+  color: #1d4ed8;
   padding: 1px 5px;
   border-radius: 3px;
 }

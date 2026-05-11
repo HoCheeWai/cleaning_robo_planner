@@ -309,6 +309,9 @@ A responsive web application that serves as a cleaning robot fleet calculator/pl
 4. THE Input_Form SHALL provide a "Use All Defaults" button that resets all fields to their default values in a single action
 5. WHEN a user modifies a field away from its default, THE Input_Form SHALL visually distinguish that field (e.g., subtle highlight or indicator) so the user can see which values they have customized
 6. THE default value for distance_to_service_hub SHALL be dynamically recalculated as sqrt(actual_area_per_floor / π) whenever actual_area_per_floor changes, unless the user has manually overridden it
+7. DERIVED (read-only computed) fields SHALL display a blue left-border indicator with a "modified inputs" text badge when at least one of their parent input dependencies has been changed from its default value. This helps users understand which computed values are influenced by their customisations.
+8. WHEN the user manually overrides `distance_to_service_hub` (which normally auto-calculates), THE Input_Form SHALL display an amber left-border indicator with an "overridden" text badge on that field, distinguishing it from a dynamically computed value.
+9. THE colour indicators SHALL meet WCAG 2.1 AA contrast requirements and SHALL NOT rely on colour alone — supplementary text labels ("modified inputs", "overridden") are provided for colour-blind users.
 
 ### Requirement 16: Spreadsheet Upload
 

@@ -3,6 +3,33 @@
   flex-direction: column;
   gap: 4px;
   margin-bottom: 12px;
+  border-left: 3px solid transparent;
+  padding-left: 8px;
+  transition: border-color 0.2s;
+}
+
+.overriddenField {
+  border-left-color: #3b82f6;
+}
+
+.nonDefaultParentsField {
+  border-left-color: #d97706;
+}
+
+.overriddenBadge {
+  font-size: 0.65rem;
+  background: #dbeafe;
+  color: #1d4ed8;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.nonDefaultParentsBadge {
+  font-size: 0.65rem;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 1px 5px;
+  border-radius: 3px;
 }
 
 .labelRow {

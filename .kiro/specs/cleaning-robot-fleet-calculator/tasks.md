@@ -374,3 +374,10 @@ The following bugfixes were applied after the initial implementation. Their spec
 - Earlier batches begin cleaning immediately without waiting for later batches
 - Resource tracking (dockFreeAt, stationFreeAt) initialized to 0
 - Simulation starts at `currentTime = 0` to allow incremental robot activation
+
+### Derived Field Indicators (`.kiro/specs/derived-field-indicators/`)
+- Blue left-border indicator on derived fields when parent inputs differ from defaults
+- Amber left-border indicator on `distance_to_service_hub` when manually overridden
+- Accessibility text badges ("modified inputs", "overridden") for colour-blind users
+- Utility function `getDerivedFieldStatus()` with dependency map and dynamic default awareness
+- Property-based tests verifying all 4 correctness properties

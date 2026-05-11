@@ -8,6 +8,7 @@ import { InputField } from '../InputField/InputField';
 import { DerivedField } from '../DerivedField/DerivedField';
 import { ModeSelector } from '../ModeSelector/ModeSelector';
 import { ValidationSummary } from '../ValidationSummary/ValidationSummary';
+import { getDerivedFieldStatus } from './derivedFieldStatus';
 import styles from './InputForm.module.css';
 
 export function InputForm() {
@@ -17,6 +18,15 @@ export function InputForm() {
 
   const getError = (field: string) => validationErrors.find(e => e.field === field)?.message;
   const isCustomized = (field: string) => hasCustomizedFields.has(field);
+
+  // Compute indicator statuses for derived fields
+  const totalDistanceStatus = getDerivedFieldStatus('total_cleaning_distance', inputs, hasCustomizedFields, DEFAULT_INPUTS);
+  const travelTimeStatus = getDerivedFieldStatus('travel_time_to_service_hub', inputs, hasCustomizedFields, DEFAULT_INPUTS);
+  const chargingContentionStatus = getDerivedFieldStatus('charging_contention_time', inputs, hasCustomizedFields, DEFAULT_INPUTS);
+  const refillContentionStatus = getDerivedFieldStatus('refill_contention_time', inputs, hasCustomizedFields, DEFAULT_INPUTS);
+  const rechargeCyclesStatus = getDerivedFieldStatus('num_of_recharge_cycles', inputs, hasCustomizedFields, DEFAULT_INPUTS);
+  const refillCyclesStatus = getDerivedFieldStatus('num_of_refill_cycles', inputs, hasCustomizedFields, DEFAULT_INPUTS);
+  const distanceOverrideStatus = getDerivedFieldStatus('distance_to_service_hub', inputs, hasCustomizedFields, DEFAULT_INPUTS);
 
   const handleChange = (field: keyof CalculatorInputs) => (value: number | boolean) => {
     dispatch({ type: 'UPDATE_INPUT', field, value });
@@ -352,6 +362,7 @@ export function InputForm() {
           error={getError('distance_to_service_hub')}
           onChange={handleChange('distance_to_service_hub')}
           step={0.1}
+          indicatorStatus={distanceOverrideStatus}
         />
         <InputField
           label={meta.vertical_travel_time.label}
@@ -396,24 +407,28 @@ export function InputForm() {
           unit="m"
           tooltip="Total linear distance the fleet must travel to clean the entire area. Computed as: (area × floors × passes) / (cleaning width × (1 - overlap)). This converts square metres into linear metres by accounting for the robot's cleaning strip width."
           decimals={0}
+          indicatorStatus={totalDistanceStatus}
         />
         <DerivedField
           label="Travel Time to Service Hub"
           value={derived?.travel_time_to_service_hub ?? null}
           unit="min"
           tooltip="Round-trip travel time from cleaning zone to service hub. Computed: (2 × distance) / speed"
+          indicatorStatus={travelTimeStatus}
         />
         <DerivedField
           label="Charging Contention Time"
           value={derived?.charging_contention_time ?? null}
           unit="min"
           tooltip="Extra wait time per charge cycle due to shared docks"
+          indicatorStatus={chargingContentionStatus}
         />
         <DerivedField
           label="Refill Contention Time"
           value={derived?.refill_contention_time ?? null}
           unit="min"
           tooltip="Extra wait time per refill cycle due to shared stations"
+          indicatorStatus={refillContentionStatus}
         />
         <DerivedField
           label="Recharge Cycles"
@@ -421,6 +436,7 @@ export function InputForm() {
           unit="cycles"
           tooltip="Number of times each robot must recharge during the job"
           decimals={0}
+          indicatorStatus={rechargeCyclesStatus}
         />
         <DerivedField
           label="Refill Cycles"
@@ -428,6 +444,7 @@ export function InputForm() {
           unit="cycles"
           tooltip="Number of times each robot must refill during the job"
           decimals={0}
+          indicatorStatus={refillCyclesStatus}
         />
       </div>
 
