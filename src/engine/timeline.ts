@@ -22,7 +22,6 @@ import {
   computeUsableBatteryTime,
   computeCleaningTimePerRobot,
   computeTravelTimeToServiceHub,
-  computeFloorDistributionTime,
 } from './formulas';
 
 // ===== Internal types =====
@@ -63,10 +62,6 @@ export function simulateTimeline(
   const usableBatt = computeUsableBatteryTime(inputs.total_battery_life, inputs.battery_reserve_threshold);
   const travelTime = computeTravelTimeToServiceHub(inputs.distance_to_service_hub, inputs.effective_speed);
   const cleanPerRobot = computeCleaningTimePerRobot(totalDist, inputs.effective_speed, numRobots);
-  const floorDistTime = computeFloorDistributionTime(
-    numRobots, inputs.num_of_robots_per_elevator_trip, inputs.num_of_elevators,
-    inputs.vertical_travel_time, inputs.num_of_floors
-  );
 
   // Per-robot batch delivery: robots are delivered incrementally by elevator batches
   const batchSize = inputs.num_of_robots_per_elevator_trip * inputs.num_of_elevators;
