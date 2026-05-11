@@ -1,0 +1,165 @@
+.fieldWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.customized {
+  color: #2563eb;
+}
+
+.tooltipIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 0.7rem;
+  cursor: help;
+  position: relative;
+}
+
+.tooltipIcon:hover .tooltipText,
+.tooltipIcon:focus .tooltipText {
+  display: block;
+}
+
+.tooltipText {
+  display: none;
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: normal;
+  width: 200px;
+  z-index: 100;
+  line-height: 1.4;
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.input {
+  flex: 1;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px 0 0 6px;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.inputError {
+  border-color: #dc2626;
+}
+
+.inputError:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+.unitSuffix {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.errorMessage {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 2px;
+}
+
+.customBadge {
+  font-size: 0.65rem;
+  background: #dbeafe;
+  color: #2563eb;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.toggleWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: none;
+  padding: 0;
+}
+
+.toggle.active {
+  background: #2563eb;
+}
+
+.toggleKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle.active .toggleKnob {
+  transform: translateX(20px);
+}
+
+.toggleLabel {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

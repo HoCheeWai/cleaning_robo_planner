@@ -1,0 +1,235 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.primaryResult {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.primaryLabel {
+  font-size: 0.85rem;
+  color: #166534;
+  margin-bottom: 4px;
+}
+
+.primaryValue {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.primarySub {
+  font-size: 0.85rem;
+  color: #166534;
+  margin-top: 4px;
+}
+
+.modeInfo {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 8px;
+}
+
+.deadTimeBox {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.deadTimeLabel {
+  font-size: 0.8rem;
+  color: #92400e;
+}
+
+.deadTimeValue {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #b45309;
+}
+
+.section {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.sectionTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.chartNote {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.breakdownTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.breakdownTable th,
+.breakdownTable td {
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 0.8rem;
+}
+
+.breakdownTable th {
+  color: #64748b;
+  font-weight: 500;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.breakdownTable td {
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.barCell {
+  width: 40%;
+}
+
+.bar {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+.optimizationList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.optimizationItem {
+  padding: 8px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.optimizationItem:last-child {
+  border-bottom: none;
+}
+
+.optLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.optSuggestion {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.robotDistribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.robotCard {
+  flex: 1;
+  min-width: 100px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.robotName {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.robotPct {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.exportBtn {
+  min-height: 44px;
+  padding: 10px 20px;
+  background: #7c3aed;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  width: 100%;
+}
+
+.exportBtn:hover {
+  background: #6d28d9;
+}
+
+.exportBtn:disabled {
+  background: #cbd5e1;
+  cursor: not-allowed;
+}
+
+.placeholder {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.assumptions {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 8px;
+}
+
+.assumptionsTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.assumptionsList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.assumptionsList li {
+  margin-bottom: 4px;
+}
+
+.assumptionsList strong {
+  color: #475569;
+}

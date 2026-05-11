@@ -1,0 +1,99 @@
+.fieldWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.tooltipIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+  font-size: 0.7rem;
+  cursor: help;
+  position: relative;
+}
+
+.tooltipIcon:hover .tooltipText,
+.tooltipIcon:focus .tooltipText {
+  display: block;
+}
+
+.tooltipText {
+  display: none;
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: normal;
+  width: 200px;
+  z-index: 100;
+  line-height: 1.4;
+}
+
+.valueRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.value {
+  flex: 1;
+  min-height: 38px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px 0 0 6px;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.unitSuffix {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.8rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.note {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+.derivedBadge {
+  font-size: 0.65rem;
+  background: #f0fdf4;
+  color: #16a34a;
+  padding: 1px 5px;
+  border-radius: 3px;
+}

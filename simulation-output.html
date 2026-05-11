@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cleaning Robot Fleet Calculator — Simulation Reference</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fa;color:#1a1a2e;padding:20px;line-height:1.6}
+h1{font-size:1.6rem;margin-bottom:4px}h2{font-size:1.2rem;margin:24px 0 12px;color:#2d3748;border-bottom:2px solid #e2e8f0;padding-bottom:6px}
+h3{font-size:1rem;margin:16px 0 8px;color:#4a5568}.container{max-width:1050px;margin:0 auto}
+.card{background:white;border-radius:8px;padding:24px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+.primary-result{font-size:2.2rem;font-weight:700;color:#2b6cb0;text-align:center;padding:12px}
+.primary-result small{font-size:0.95rem;color:#718096;display:block;margin-top:4px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:12px 0;text-align:center}
+.metric{background:#f7fafc;border-radius:6px;padding:10px 8px}
+.metric-value{font-size:1.3rem;font-weight:700;color:#2d3748}
+.metric-label{font-size:0.7rem;color:#718096;text-transform:uppercase;letter-spacing:0.5px}
+.gantt-legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px;font-size:0.75rem}
+.gantt-legend-item{display:flex;align-items:center;gap:4px}
+.gantt-legend-color{width:16px;height:12px;border-radius:2px}
+.gantt-container{overflow-x:auto}.gantt-chart{min-width:700px}
+.gantt-row{display:flex;align-items:center;margin-bottom:3px}
+.gantt-label{width:65px;font-size:0.75rem;font-weight:600;flex-shrink:0}
+.gantt-bar{flex:1;height:30px;position:relative;background:#f7fafc;border-radius:3px;overflow:hidden;border:1px solid #e2e8f0}
+.gantt-segment{height:100%;position:absolute;top:0}
+.gantt-segment:hover{opacity:0.7;outline:2px solid #1a202c;z-index:5}
+.tooltip{display:none;position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:#1a202c;color:white;padding:5px 10px;border-radius:4px;font-size:0.72rem;white-space:nowrap;z-index:10;pointer-events:none}
+.gantt-segment:hover .tooltip{display:block}
+.gantt-axis{display:flex;justify-content:space-between;margin-top:4px;font-size:0.7rem;color:#a0aec0;padding-left:65px}
+.breakdown-table{width:100%;border-collapse:collapse;font-size:0.85rem}
+.breakdown-table th,.breakdown-table td{padding:8px 12px;text-align:left;border-bottom:1px solid #e2e8f0}
+.breakdown-table th{background:#f7fafc;font-weight:600}
+.pct-bar{height:8px;border-radius:4px;background:#e2e8f0;overflow:hidden;width:130px}
+.pct-bar-fill{height:100%;border-radius:4px}
+.optimization{padding:10px 14px;background:#fffbeb;border-left:4px solid #f6ad55;margin-bottom:8px;border-radius:0 6px 6px 0;font-size:0.85rem}
+.optimization strong{color:#c05621}
+.robot-summary{font-size:0.8rem;color:#4a5568;margin-top:10px;display:flex;gap:16px;flex-wrap:wrap}
+.robot-chip{background:#f0fff4;border:1px solid #c6f6d5;border-radius:4px;padding:3px 8px}
+.dead-warning{background:#fff5f5;border:1px solid #fed7d7;border-radius:6px;padding:10px 14px;margin:10px 0;font-size:0.85rem;color:#c53030}
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+<script>
+const INPUTS={actual_area_per_floor:2000,num_of_floors:1,num_of_passes:1,effective_cleaning_width:0.30,overlap_percentage:0.10,num_of_robots:3,num_of_charging_points:2,num_of_refill_stations:1,effective_speed:18,total_battery_life:120,battery_reserve_threshold:0.20,tank_capacity_time:60,distance_to_service_hub:12.6,effective_charge_time:90,refill_duration:5,field_buffer_multiplier:1.20};
+const TOTAL_DIST=(INPUTS.actual_area_per_floor*INPUTS.num_of_floors*INPUTS.num_of_passes)/(INPUTS.effective_cleaning_width*(1-INPUTS.overlap_percentage));
+const USABLE_BATT=INPUTS.total_battery_life*(1-INPUTS.battery_reserve_threshold);
+const TRAVEL=(2*INPUTS.distance_to_service_hub)/INPUTS.effective_speed;
+const CLEAN_PER_ROBOT=TOTAL_DIST/(INPUTS.effective_speed*INPUTS.num_of_robots);
+const COLORS={cleaning:'#48bb78',traveling:'#4299e1',charging:'#ecc94b','wait-dock':'#ed8936',refilling:'#9f7aea','wait-station':'#fc8181',idle:'#e2e8f0'};
+const LABELS={cleaning:'Cleaning',traveling:'Traveling',charging:'Charging','wait-dock':'Wait (Dock)',refilling:'Refilling','wait-station':'Wait (Station)',idle:'Idle'};
+
+function simulate(startMode,workMode){
+  const N=INPUTS.num_of_robots;
+  const cycleTime=Math.min(USABLE_BATT,INPUTS.tank_capacity_time)+TRAVEL+INPUTS.refill_duration+TRAVEL;
+  const offset=startMode==='staggered'?cycleTime/N:0;
+  let dockFreeAt=new Array(INPUTS.num_of_charging_points).fill(0);
+  let stationFreeAt=new Array(INPUTS.num_of_refill_stations).fill(0);
+  let robots=[];
+  for(let i=0;i<N;i++) robots.push({id:i+1,state:'waiting-start',startAt:i*offset,battery:USABLE_BATT,tank:INPUTS.tank_capacity_time,remaining:workMode==='fixed-zones'?CLEAN_PER_ROBOT:0,cleaned:0,segments:[],cleanStartTime:null,serviceEndTime:null});
+  let pool=TOTAL_DIST;let currentTime=0;let safety=0;
+  while(safety++<50000){
+    for(let r of robots){if(r.state==='waiting-start'&&r.startAt<=currentTime+0.001){r.state='cleaning';r.cleanStartTime=currentTime;}}
+    let cr=robots.filter(r=>r.state==='cleaning');let nc=cr.length;
+    if(workMode==='collaborative'&&pool<=0.01)break;
+    if(robots.every(r=>r.state==='done'))break;
+    let ne=Infinity;
+    for(let r of robots){if(r.state==='waiting-start')ne=Math.min(ne,r.startAt);}
+    for(let r of cr){let t=Math.min(r.battery,r.tank);if(workMode==='fixed-zones')t=Math.min(t,r.remaining);ne=Math.min(ne,currentTime+t);}
+    if(workMode==='collaborative'&&nc>0)ne=Math.min(ne,currentTime+pool/(nc*INPUTS.effective_speed));
+    for(let r of robots){if(r.state==='in-service'&&r.serviceEndTime)ne=Math.min(ne,r.serviceEndTime);}
+    if(ne===Infinity||ne<currentTime-0.001)break;
+    let dt=Math.max(0,ne-currentTime);
+    if(dt>0.001&&nc>0){let d=dt*INPUTS.effective_speed;for(let r of cr){r.battery-=dt;r.tank-=dt;r.cleaned+=d;if(workMode==='fixed-zones')r.remaining-=dt;}if(workMode==='collaborative')pool-=nc*d;}
+    currentTime=ne;
+    for(let r of[...cr]){let stop=false;if(r.battery<=0.01||r.tank<=0.01)stop=true;if(workMode==='fixed-zones'&&r.remaining<=0.01)stop=true;if(workMode==='collaborative'&&pool<=0.01)stop=true;if(stop){r.segments.push({act:'cleaning',s:r.cleanStartTime,e:currentTime});r.cleanStartTime=null;if((workMode==='fixed-zones'&&r.remaining<=0.01)||(workMode==='collaborative'&&pool<=0.01))r.state='done';else svc(r,currentTime,dockFreeAt,stationFreeAt);}}
+    for(let r of robots){if(r.state==='in-service'&&r.serviceEndTime&&currentTime>=r.serviceEndTime-0.001){r.serviceEndTime=null;if((workMode==='collaborative'&&pool<=0.01)||(workMode==='fixed-zones'&&r.remaining<=0.01))r.state='done';else{r.state='cleaning';r.cleanStartTime=currentTime;}}}
+  }
+  for(let r of robots){if(r.state==='cleaning'&&r.cleanStartTime!==null)r.segments.push({act:'cleaning',s:r.cleanStartTime,e:currentTime});}
+  const raw=currentTime;
+  for(let r of robots){let le=r.segments.length>0?r.segments[r.segments.length-1].e:(r.startAt||0);if(le<raw-0.01)r.segments.push({act:'idle',s:le,e:raw});if(r.startAt>0.01&&r.segments[0].s>0.01)r.segments.unshift({act:'idle',s:0,e:r.startAt});}
+  robots.sort((a,b)=>a.id-b.id);
+  let eff=compEff(robots,raw);let bd=compBreakdown(robots,raw);let dead=compDead(robots,raw);
+  return{robots,rawElapsed:raw,buffered:raw*INPUTS.field_buffer_multiplier,eff,bd,dead};
+}
+function svc(r,t,dF,sF){
+  r.state='in-service';const nr=r.tank<=0.01,nc=r.battery<=0.01;
+  r.segments.push({act:'traveling',s:t,e:t+TRAVEL});t+=TRAVEL;
+  if(nr){let e=Math.min(...sF),i=sF.indexOf(e),w=Math.max(0,e-t);if(w>0.01){r.segments.push({act:'wait-station',s:t,e:t+w});t+=w;}r.segments.push({act:'refilling',s:t,e:t+INPUTS.refill_duration});t+=INPUTS.refill_duration;sF[i]=t;r.tank=INPUTS.tank_capacity_time;}
+  if(nc){let e=Math.min(...dF),i=dF.indexOf(e),w=Math.max(0,e-t);if(w>0.01){r.segments.push({act:'wait-dock',s:t,e:t+w});t+=w;}r.segments.push({act:'charging',s:t,e:t+INPUTS.effective_charge_time});t+=INPUTS.effective_charge_time;dF[i]=t;r.battery=USABLE_BATT;}
+  r.segments.push({act:'traveling',s:t,e:t+TRAVEL});t+=TRAVEL;r.serviceEndTime=t;
+}
+function compEff(robots,T){let pts=[];let step=Math.max(0.5,T/200);for(let t=0;t<=T+0.01;t+=step){let c=0,d=0;for(let r of robots)for(let s of r.segments)if(s.act==='cleaning'){if(s.s<=t&&s.e>t)c++;let e=Math.min(s.e,t);if(e>s.s)d+=(e-s.s)*INPUTS.effective_speed;}pts.push({t,u:c/INPUTS.num_of_robots*100,p:Math.min(100,d/TOTAL_DIST*100)});}return pts;}
+function compBreakdown(robots,T){let tot={};for(let r of robots)for(let s of r.segments)tot[s.act]=(tot[s.act]||0)+(s.e-s.s);let g=Object.values(tot).reduce((a,b)=>a+b,0);return Object.entries(tot).filter(([k,v])=>v>0.1).map(([k,v])=>({act:k,min:v/INPUTS.num_of_robots,pct:v/g*100})).sort((a,b)=>b.pct-a.pct);}
+function compDead(robots,T){let dead=0,periods=[];let step=0.2,inD=false,ds=0;for(let t=0;t<=T;t+=step){let any=false;for(let r of robots){for(let s of r.segments){if(s.act==='cleaning'&&s.s<=t&&s.e>t){any=true;break;}}if(any)break;}if(!any)dead+=step;if(!any&&!inD){inD=true;ds=t;}if(any&&inD){inD=false;periods.push([ds,t]);}}if(inD)periods.push([ds,T]);return{total:dead,periods,pct:(dead/T*100)};}
+
+// ===== RENDERING =====
+function render(sm,wm){
+  const r=simulate(sm,wm);
+  const label=`${sm==='simultaneous'?'Simultaneous':'Staggered'} Start + ${wm==='fixed-zones'?'Fixed Zones':'Collaborative'}`;
+  let h=`<div class="card"><h2>${label}</h2>`;
+  h+=`<div class="primary-result">${r.buffered.toFixed(1)} min<small>${(r.buffered/60).toFixed(1)} hours | Raw: ${r.rawElapsed.toFixed(1)} min × ${INPUTS.field_buffer_multiplier} buffer</small></div>`;
+  // Metrics
+  h+=`<div class="metrics">`;
+  h+=`<div class="metric"><div class="metric-value">${r.rawElapsed.toFixed(1)}</div><div class="metric-label">Raw Time (min)</div></div>`;
+  h+=`<div class="metric"><div class="metric-value">${r.dead.total.toFixed(1)}</div><div class="metric-label">Dead Time (min)</div></div>`;
+  h+=`<div class="metric"><div class="metric-value">${(100-r.dead.pct).toFixed(1)}%</div><div class="metric-label">Active %</div></div>`;
+  h+=`<div class="metric"><div class="metric-value">${r.dead.periods.length}</div><div class="metric-label">Service Storms</div></div>`;
+  h+=`</div>`;
+  // Dead time warning
+  if(r.dead.total>10){h+=`<div class="dead-warning">⚠️ <strong>${r.dead.total.toFixed(1)} min</strong> of dead time (zero robots cleaning). Periods: ${r.dead.periods.map(([s,e])=>`${s.toFixed(0)}–${e.toFixed(0)}min`).join(', ')}</div>`;}
+  // Legend
+  h+=`<h3>Fleet Activity Timeline</h3><div class="gantt-legend">`;
+  for(let[k,c]of Object.entries(COLORS))h+=`<div class="gantt-legend-item"><div class="gantt-legend-color" style="background:${c}"></div>${LABELS[k]}</div>`;
+  h+=`</div>`;
+  // Gantt
+  h+=`<div class="gantt-container"><div class="gantt-chart">`;
+  for(let bot of r.robots){
+    h+=`<div class="gantt-row"><div class="gantt-label">Robot ${bot.id}</div><div class="gantt-bar">`;
+    for(let s of bot.segments){let l=(s.s/r.rawElapsed*100).toFixed(3),w=Math.max(0.15,(s.e-s.s)/r.rawElapsed*100).toFixed(3);h+=`<div class="gantt-segment" style="left:${l}%;width:${w}%;background:${COLORS[s.act]}"><span class="tooltip">${LABELS[s.act]}: ${s.s.toFixed(1)}–${s.e.toFixed(1)} (${(s.e-s.s).toFixed(1)}min)</span></div>`;}
+    h+=`</div></div>`;
+  }
+  h+=`</div><div class="gantt-axis">`;for(let i=0;i<=6;i++)h+=`<span>${(r.rawElapsed*i/6).toFixed(0)}</span>`;h+=`</div></div>`;
+  // Robot summary
+  h+=`<div class="robot-summary">`;for(let bot of r.robots)h+=`<span class="robot-chip">R${bot.id}: ${bot.cleaned.toFixed(0)}m (${(bot.cleaned/TOTAL_DIST*100).toFixed(1)}%)</span>`;h+=`</div>`;
+  // Efficiency graph
+  h+=`<h3>Efficiency Over Time</h3><div style="font-size:0.75rem;margin-bottom:4px"><span style="color:#2b6cb0">━━ Fleet Utilization %</span> &nbsp; <span style="color:#38a169">╌╌ Cumulative Progress %</span></div>`;
+  h+=effSvg(r.eff,r.rawElapsed);
+  // Breakdown
+  h+=`<h3>Time Breakdown (per robot avg)</h3><table class="breakdown-table"><tr><th>Activity</th><th>Time</th><th>%</th><th></th></tr>`;
+  for(let it of r.bd)h+=`<tr><td>${LABELS[it.act]||it.act}</td><td>${it.min.toFixed(1)}m</td><td>${it.pct.toFixed(1)}%</td><td><div class="pct-bar"><div class="pct-bar-fill" style="width:${it.pct}%;background:${COLORS[it.act]}"></div></div></td></tr>`;
+  h+=`</table>`;
+  // Optimizations
+  h+=`<h3>Top Optimization Opportunities</h3>`;
+  let top=r.bd.filter(b=>b.act!=='cleaning').slice(0,3);
+  for(let i=0;i<top.length;i++){let o=top[i];h+=`<div class="optimization"><strong>#${i+1} ${LABELS[o.act]}</strong> — ${o.pct.toFixed(1)}% of time (${o.min.toFixed(1)}min/robot). ${sug(o.act)}</div>`;}
+  h+=`</div>`;return h;
+}
+function sug(a){return{charging:'Larger battery or faster charging.',  'wait-dock':`Add 1 dock (have ${INPUTS.num_of_charging_points}). Eliminates ~80min wait.`,'wait-station':`Add 1 station (have ${INPUTS.num_of_refill_stations}).`,refilling:'Larger tank reduces refill frequency.',traveling:`Move hub closer (${INPUTS.distance_to_service_hub}m).`,idle:'Switch to Collaborative mode.'}[a]||'';}
+function niceInterval(range){
+  const cands=[1,2,2.5,5,10,15,20,25,30,50,60,100,120,150,200,250,300,500,1000];
+  const rough=range/8;
+  for(const c of cands){if(c>=rough)return c;}
+  return cands[cands.length-1];
+}
+function effSvg(data,T){
+  const W=680,H=130,PL=35,PR=5,PT=10,PB=22;
+  let s=`<svg viewBox="0 0 ${W+PL+PR} ${H+PT+PB}" style="width:100%;max-width:${W+PL+PR}px;height:auto;background:#fafafa;border-radius:4px">`;
+  for(let i=0;i<=4;i++){let y=PT+H-H*i/4;s+=`<line x1="${PL}" y1="${y}" x2="${W+PL}" y2="${y}" stroke="#edf2f7" stroke-width="1"/><text x="${PL-4}" y="${y+3}" text-anchor="end" font-size="9" fill="#a0aec0">${i*25}</text>`;}
+  const tickStep=niceInterval(T);
+  for(let t=0;t<=T+tickStep*0.01;t+=tickStep){let x=PL+(t/T)*W;s+=`<text x="${x}" y="${H+PT+14}" text-anchor="middle" font-size="9" fill="#a0aec0">${t.toFixed(0)}</text>`;}
+  // Shade dead zones
+  let inD=false,ds=0;
+  for(let i=0;i<data.length;i++){if(data[i].u===0&&!inD){inD=true;ds=data[i].t;}if(data[i].u>0&&inD){inD=false;let x1=PL+(ds/T)*W,x2=PL+(data[i].t/T)*W;s+=`<rect x="${x1}" y="${PT}" width="${x2-x1}" height="${H}" fill="#fff5f5" opacity="0.6"/>`;}};if(inD){let x1=PL+(ds/T)*W;s+=`<rect x="${x1}" y="${PT}" width="${W+PL-x1}" height="${H}" fill="#fff5f5" opacity="0.6"/>`;}
+  let u='',p='M';
+  for(let i=0;i<data.length;i++){
+    let x=PL+(data[i].t/T)*W;
+    let y=PT+H-data[i].u/100*H;
+    if(i===0){u=`M${x.toFixed(1)},${y.toFixed(1)} `;}
+    else{u+=`H${x.toFixed(1)} V${y.toFixed(1)} `;}
+    p+=`${i?'L':''}${x.toFixed(1)},${(PT+H-data[i].p/100*H).toFixed(1)} `;
+  }
+  s+=`<path d="${u}" fill="none" stroke="#2b6cb0" stroke-width="2.5"/><path d="${p}" fill="none" stroke="#38a169" stroke-width="2" stroke-dasharray="6,3"/>`;
+  s+=`</svg>`;return s;
+}
+
+// ===== MAIN =====
+let html=`<h1>🤖 Cleaning Robot Fleet Calculator — Reference Simulation</h1>`;
+html+=`<div class="card"><p style="color:#4a5568"><strong>Reference Scenario:</strong> 3 robots, 2 charging docks, 1 refill station | 2000 m² | Battery: ${USABLE_BATT} min usable | Tank: ${INPUTS.tank_capacity_time} min | Charge: ${INPUTS.effective_charge_time} min | Refill: ${INPUTS.refill_duration} min | Travel: ${TRAVEL.toFixed(1)} min | Buffer: ×${INPUTS.field_buffer_multiplier}</p>`;
+html+=`<p style="color:#718096;font-size:0.85rem;margin-top:8px">Clean time/robot (fixed zones): ${CLEAN_PER_ROBOT.toFixed(1)} min | Recharges needed: ${Math.max(0,Math.ceil(CLEAN_PER_ROBOT/USABLE_BATT)-1)} | Refills needed: ${Math.max(0,Math.ceil(CLEAN_PER_ROBOT/INPUTS.tank_capacity_time)-1)}</p></div>`;
+
+html+=render('simultaneous','fixed-zones');
+html+=render('simultaneous','collaborative');
+html+=render('staggered','fixed-zones');
+html+=render('staggered','collaborative');
+
+// Comparison summary
+html+=`<div class="card"><h2>📊 Comparison Summary</h2>`;
+html+=`<table class="breakdown-table"><tr><th>Scenario</th><th>Raw</th><th>Buffered</th><th>Dead Time</th><th>Active%</th><th>Work Split</th></tr>`;
+let all=[['Simultaneous + Fixed Zones','simultaneous','fixed-zones'],['Simultaneous + Collaborative','simultaneous','collaborative'],['Staggered + Fixed Zones','staggered','fixed-zones'],['Staggered + Collaborative','staggered','collaborative']];
+let results=all.map(([n,s,w])=>[n,simulate(s,w)]);
+let bestTime=Math.min(...results.map(r=>r[1].buffered));
+let bestUtil=Math.max(...results.map(r=>100-r[1].dead.pct));
+for(let[n,r]of results){
+  let isBestTime=r.buffered<=bestTime+0.1;
+  let isBestUtil=(100-r.dead.pct)>=bestUtil-0.1;
+  let style=isBestTime?'color:#2b6cb0;font-weight:700':'';
+  let split=r.robots.map(b=>(b.cleaned/TOTAL_DIST*100).toFixed(1)+'%').join(' / ');
+  html+=`<tr style="${style}"><td>${n}${isBestTime?' ⚡':''}${isBestUtil?' 📈':''}</td><td>${r.rawElapsed.toFixed(1)}</td><td>${r.buffered.toFixed(1)}</td><td>${r.dead.total.toFixed(1)}</td><td>${(100-r.dead.pct).toFixed(1)}%</td><td>${split}</td></tr>`;
+}
+html+=`</table>`;
+html+=`<p style="margin-top:12px;font-size:0.8rem;color:#718096">⚡ = Fastest total time &nbsp; 📈 = Highest fleet utilization</p>`;
+html+=`<div style="margin-top:16px;padding:12px;background:#ebf8ff;border-radius:6px;font-size:0.85rem"><strong>Key insight:</strong> "Fastest" (⚡ Simultaneous+Collaborative) and "Most Utilized" (📈 Staggered+Collaborative) are different scenarios. Simultaneous start finishes sooner but creates service storms. Staggered start takes longer but keeps robots productive more of the time.</div>`;
+html+=`</div>`;
+
+document.getElementById('app').innerHTML=html;
+</script>
+</body>
+</html>

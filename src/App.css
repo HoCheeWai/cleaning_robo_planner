@@ -1,0 +1,60 @@
+/* App layout */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Multi-column layout for wider screens */
+@media (min-width: 768px) {
+  .main {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+/* Single column for narrow screens */
+@media (max-width: 767px) {
+  .main {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+}
+
+/* Ensure readability at 320px */
+@media (max-width: 320px) {
+  .main {
+    padding: 8px;
+    gap: 12px;
+  }
+}
+
+.inputPanel {
+  min-width: 0;
+}
+
+.resultPanel {
+  min-width: 0;
+}
+
+/* Sticky result panel on desktop */
+@media (min-width: 768px) {
+  .resultPanel {
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+  }
+}

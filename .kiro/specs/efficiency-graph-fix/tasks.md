@@ -1,0 +1,32 @@
+# Tasks — Efficiency Graph Fix
+
+- [x] 1. Fix utilization line rendering in EfficiencyGraph.tsx
+  - [x] 1.1 Replace the `utilizationPath` builder (line ~34) to use step-function H/V commands instead of L commands — for each point after the first, emit `H <newX> V <newY>` to draw horizontal then vertical
+  - [x] 1.2 Verify the `progressPath` builder remains unchanged (still uses L commands)
+- [x] 2. Fix x-axis tick computation in EfficiencyGraph.tsx
+  - [x] 2.1 Add a `niceTickInterval(range, targetTicks)` helper function that selects from candidate intervals [1, 2, 2.5, 5, 10, 15, 20, 25, 30, 50, 60, 100, 120, 150, 200, 250, 300, 500, 1000]
+  - [x] 2.2 Replace the fixed `numXTicks = 6` / `totalTime / numXTicks` logic with the nice-interval computation, generating ticks from 0 up to (and including a tick ≥) totalTime
+- [x] 3. Fix utilization line rendering in simulation-output.html
+  - [x] 3.1 In the `effSvg()` function, replace the utilization path builder (`u += ...L...`) with step-function logic using H/V commands
+  - [x] 3.2 Verify the progress path builder (`p += ...L...`) remains unchanged
+- [x] 4. Fix x-axis tick computation in simulation-output.html
+  - [x] 4.1 Add a `niceInterval(range)` helper function (same logic as 2.1)
+  - [x] 4.2 Replace the fixed `for(let i=0;i<=6;i++)` x-axis tick loop in `effSvg()` with nice-interval-based tick generation
+- [x] 5. Write unit tests for the fix
+  - [x] 5.1 Test step-function path builder: given known data points, assert output contains only M/H/V commands with no diagonal L segments
+  - [x] 5.2 Test niceTickInterval: assert correct interval selection for various totalTime values (35→5, 100→10 or 15, 443.9→50, 1000→150 or 200, 5→1)
+  - [x] 5.3 Test edge cases: empty data array returns empty string, single point returns only M command, totalTime near zero
+  - [x] 5.4 [PBT-exploration] Property test: for random data arrays (2+ points, ascending time, utilization 0–100), the utilization path from the UNFIXED code contains diagonal L commands (demonstrates the bug)
+  - [x] 5.5 [PBT-fix] Property test: for random data arrays (2+ points, ascending time, utilization 0–100), the FIXED utilization path contains only M/H/V commands
+  - [x] 5.6 [PBT-preservation] Property test: for random data arrays, the progress path output is identical before and after the fix (uses L commands)
+- [x] 6. Verify build passes
+  - [x] 6.1 Run `npm run build` (or equivalent) and confirm no TypeScript or bundler errors
+- [x] 7. Fix Gantt chart x-axis ticks in TimelineChart.tsx
+  - [x] 7.1 Import `niceTickInterval` from graphUtils and replace the fixed `totalTime / numTicks` logic with nice-interval computation
+  - [x] 7.2 Add small vertical tick marks on the x-axis at each tick position for readability
+- [x] 8. Add vertical tick marks to EfficiencyGraph.tsx x-axis
+  - [x] 8.1 Add small vertical line marks at each x-axis tick position
+- [x] 9. Fix efficiency data recording for initial robot activation
+  - [x] 9.1 In `simulateTimeline()`, record an efficiency data point when robots first transition from pending to cleaning state after floor distribution, so the graph correctly shows the jump from 0% to 100% utilization
+- [x] 10. Add explanatory note about raw vs buffered time
+  - [x] 10.1 Add a note above the Gantt chart in ResultDisplay explaining that charts show raw simulation time and the reported elapsed time includes the field buffer multiplier

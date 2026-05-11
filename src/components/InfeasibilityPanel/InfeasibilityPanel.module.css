@@ -1,0 +1,49 @@
+.wrapper {
+  background: #fef2f2;
+  border: 2px solid #fca5a5;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #dc2626;
+  margin-bottom: 8px;
+}
+
+.reason {
+  font-size: 0.9rem;
+  color: #991b1b;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.suggestionsTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+.suggestionsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.suggestionItem {
+  padding: 6px 0;
+  font-size: 0.85rem;
+  color: #334155;
+  border-bottom: 1px solid #fecaca;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem::before {
+  content: '→ ';
+  color: #dc2626;
+}

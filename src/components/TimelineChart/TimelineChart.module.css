@@ -1,0 +1,44 @@
+.wrapper {
+  overflow-x: auto;
+  position: relative;
+}
+
+.chart {
+  display: block;
+  min-width: 100%;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 8px 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.tooltip {
+  position: fixed;
+  background: #1e293b;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  line-height: 1.4;
+}
