@@ -1,9 +1,13 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useCalculator } from '../../state';
-import { generatePDF, getPDFFilename, svgToDataUrl } from '../../services/pdfExport';
+import { generatePDF, getPDFFilename, svgToDataUrl, generateComparisonPDF, getComparisonPDFFilename } from '../../services/pdfExport';
+import { SavedScenario } from '../../services/scenarioStorage';
 import { InfeasibilityPanel } from '../InfeasibilityPanel/InfeasibilityPanel';
 import { TimelineChart } from '../TimelineChart/TimelineChart';
 import { EfficiencyGraph } from '../EfficiencyGraph/EfficiencyGraph';
+import { DeltaBanner } from '../DeltaBanner/DeltaBanner';
+import { ScenarioPanel } from '../ScenarioPanel/ScenarioPanel';
+import { CalculationResult } from '../../types';
 import styles from './ResultDisplay.module.css';
 
 const CONTRIBUTION_COLORS: Record<string, string> = {
@@ -27,10 +31,32 @@ const CONTRIBUTION_LABELS: Record<string, string> = {
 };
 
 export function ResultDisplay() {
-  const { state } = useCalculator();
+  const { state, dispatch } = useCalculator();
   const { result, inputs } = state;
   const timelineRef = useRef<HTMLDivElement>(null);
   const efficiencyRef = useRef<HTMLDivElement>(null);
+  const previousResultRef = useRef<CalculationResult | null>(null);
+  const [deltaDismissed, setDeltaDismissed] = useState(false);
+
+  // Track result changes for delta banner
+  useEffect(() => {
+    if (result && !result.infeasible) {
+      // When a new result arrives, reset dismissed state
+      setDeltaDismissed(false);
+    }
+  }, [result]);
+
+  // Update previous result ref AFTER render so DeltaBanner can compare
+  // We use a separate effect that runs after the component renders with the new result
+  useEffect(() => {
+    // Store the current result as previous for the next calculation
+    // This runs after the render, so DeltaBanner already has the old previousResultRef.current
+    return () => {
+      if (result && !result.infeasible) {
+        previousResultRef.current = result;
+      }
+    };
+  }, [result]);
 
   if (!result) {
     return (
@@ -91,10 +117,40 @@ export function ResultDisplay() {
     URL.revokeObjectURL(url);
   };
 
+  const handleLoadScenario = (scenarioInputs: typeof inputs) => {
+    dispatch({ type: 'LOAD_SCENARIO', inputs: scenarioInputs });
+    // Clear previous result ref on load (acts like a reset for delta purposes)
+    previousResultRef.current = null;
+    setDeltaDismissed(true);
+  };
+
+  const handleExportComparison = (scenarios: SavedScenario[]) => {
+    try {
+      const blob = generateComparisonPDF(scenarios);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = getComparisonPDFFilename();
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.alert('Failed to generate comparison PDF.');
+    }
+  };
+
   const totalDist = result.derived.total_cleaning_distance;
 
   return (
     <div className={styles.wrapper}>
+      {/* Delta Banner — excluded from PDF capture DOM */}
+      {!deltaDismissed && (
+        <DeltaBanner
+          previousResult={previousResultRef.current}
+          currentResult={result}
+          onDismiss={() => setDeltaDismissed(true)}
+        />
+      )}
+
       {/* Primary Result */}
       <div className={styles.primaryResult}>
         <div className={styles.primaryLabel}>
@@ -230,6 +286,14 @@ export function ResultDisplay() {
           <li>In Collaborative mode, work redistribution is instantaneous — no communication overhead between robots.</li>
         </ul>
       </div>
+
+      {/* Scenario Panel */}
+      <ScenarioPanel
+        currentResult={result}
+        currentInputs={inputs}
+        onLoadScenario={handleLoadScenario}
+        onExportComparison={handleExportComparison}
+      />
     </div>
   );
 }

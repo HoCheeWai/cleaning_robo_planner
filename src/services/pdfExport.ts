@@ -6,6 +6,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CalculatorInputs, CalculationResult } from '../types';
 import { FIELD_METADATA } from '../types/defaults';
+import { SavedScenario } from './scenarioStorage';
+import { getDifferingInputs, formatInputValue, formatInputDelta } from '../components/ComparisonTable/ComparisonTable';
 
 /**
  * Convert an SVG element to a PNG data URL by serializing it,
@@ -327,4 +329,166 @@ export function generatePDF(
 export function getPDFFilename(): string {
   const now = new Date();
   return `fleet_calculation_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.pdf`;
+}
+
+/**
+ * Generate a comparison PDF for 2–4 saved scenarios using baseline comparison.
+ * First scenario is the baseline (absolute values), others show deltas.
+ * Includes an "Input Differences" table below the metrics table.
+ * Returns a Blob for download.
+ */
+export function generateComparisonPDF(scenarios: SavedScenario[]): Blob {
+  const doc = new jsPDF('l', 'mm', 'a4'); // landscape for wider table
+  const margin = 15;
+  let y = margin;
+
+  // Title
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Scenario Comparison Report', margin, y);
+  y += 8;
+
+  // Date
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 16).replace('T', ' ');
+  doc.text(`Generated: ${dateStr} | Scenarios compared: ${scenarios.length}`, margin, y);
+  y += 10;
+
+  const baseline = scenarios[0];
+  const others = scenarios.slice(1);
+
+  // Helper to format delta text for PDF
+  function pdfFormatDelta(baselineVal: number, currentVal: number, unit: string): string {
+    const delta = currentVal - baselineVal;
+    if (Math.abs(delta) < 0.05) return '—';
+    const pct = baselineVal !== 0 ? (delta / baselineVal) * 100 : 0;
+    const sign = delta > 0 ? '+' : '';
+    return `${sign}${delta.toFixed(1)}${unit} (${sign}${pct.toFixed(0)}%)`;
+  }
+
+  function pdfFormatIntDelta(baselineVal: number, currentVal: number): string {
+    const delta = currentVal - baselineVal;
+    if (delta === 0) return '—';
+    const pct = baselineVal !== 0 ? (delta / baselineVal) * 100 : 0;
+    const sign = delta > 0 ? '+' : '';
+    return `${sign}${delta} (${sign}${pct.toFixed(0)}%)`;
+  }
+
+  function isDeltaImprovement(baselineVal: number, currentVal: number, lowerIsBetter: boolean): boolean | null {
+    const delta = currentVal - baselineVal;
+    if (Math.abs(delta) < 0.05) return null; // neutral
+    return lowerIsBetter ? delta < 0 : delta > 0;
+  }
+
+  // Build output metrics table
+  const headers = ['Metric', `${baseline.name} (Baseline)`, ...others.map(s => s.name)];
+
+  type MetricRow = {
+    label: string;
+    baselineValue: string;
+    deltas: string[];
+    improvements: (boolean | null)[]; // true=green, false=red, null=neutral
+  };
+
+  const metricRows: MetricRow[] = [
+    {
+      label: 'Total Elapsed Time',
+      baselineValue: `${baseline.result.total_elapsed_time.toFixed(1)} min`,
+      deltas: others.map(s => pdfFormatDelta(baseline.result.total_elapsed_time, s.result.total_elapsed_time, ' min')),
+      improvements: others.map(s => isDeltaImprovement(baseline.result.total_elapsed_time, s.result.total_elapsed_time, true)),
+    },
+    {
+      label: 'Dead Time (minutes)',
+      baselineValue: `${baseline.result.deadTime.total_dead_time.toFixed(1)} min`,
+      deltas: others.map(s => pdfFormatDelta(baseline.result.deadTime.total_dead_time, s.result.deadTime.total_dead_time, ' min')),
+      improvements: others.map(s => isDeltaImprovement(baseline.result.deadTime.total_dead_time, s.result.deadTime.total_dead_time, true)),
+    },
+    {
+      label: 'Number of Robots',
+      baselineValue: String(baseline.result.num_of_robots),
+      deltas: others.map(s => pdfFormatIntDelta(baseline.result.num_of_robots, s.result.num_of_robots)),
+      improvements: others.map(s => isDeltaImprovement(baseline.result.num_of_robots, s.result.num_of_robots, true)),
+    },
+    {
+      label: 'Active Cleaning (%)',
+      baselineValue: `${baseline.result.contributions.active_cleaning_pct.toFixed(1)}%`,
+      deltas: others.map(s => pdfFormatDelta(baseline.result.contributions.active_cleaning_pct, s.result.contributions.active_cleaning_pct, '%')),
+      improvements: others.map(s => isDeltaImprovement(baseline.result.contributions.active_cleaning_pct, s.result.contributions.active_cleaning_pct, false)),
+    },
+  ];
+
+  const body = metricRows.map(row => [row.label, row.baselineValue, ...row.deltas]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [headers],
+    body,
+    margin: { left: margin },
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [43, 108, 176], fontStyle: 'bold' },
+    didParseCell(data) {
+      // Color delta cells
+      if (data.section === 'body' && data.column.index > 1) {
+        const rowIndex = data.row.index;
+        const deltaIndex = data.column.index - 2; // offset for metric label + baseline columns
+        const row = metricRows[rowIndex];
+        if (row) {
+          const improvement = row.improvements[deltaIndex];
+          if (improvement === true) {
+            data.cell.styles.textColor = [21, 128, 61]; // green
+            data.cell.styles.fontStyle = 'bold';
+          } else if (improvement === false) {
+            data.cell.styles.textColor = [220, 38, 38]; // red
+            data.cell.styles.fontStyle = 'bold';
+          }
+        }
+      }
+    },
+  });
+
+  y = (doc as any).lastAutoTable.finalY + 10;
+
+  // Input Differences Table
+  const differingKeys = getDifferingInputs(scenarios);
+
+  if (differingKeys.length > 0) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Input Differences', margin, y);
+    y += 4;
+
+    const inputHeaders = ['Input', `${baseline.name} (Baseline)`, ...others.map(s => s.name)];
+    const inputBody = differingKeys.map((key) => {
+      const meta = FIELD_METADATA[key];
+      const label = meta?.label || key;
+      const baselineVal = baseline.inputs[key];
+      const deltaValues = others.map(s => {
+        const currentVal = s.inputs[key];
+        const d = formatInputDelta(baselineVal, currentVal);
+        return d.text;
+      });
+      return [label, formatInputValue(baselineVal), ...deltaValues];
+    });
+
+    autoTable(doc, {
+      startY: y,
+      head: [inputHeaders],
+      body: inputBody,
+      margin: { left: margin },
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [100, 116, 139], fontStyle: 'bold' },
+    });
+  }
+
+  return doc.output('blob');
+}
+
+/**
+ * Get the formatted filename for the comparison PDF export.
+ */
+export function getComparisonPDFFilename(): string {
+  const now = new Date();
+  return `scenario_comparison_${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.pdf`;
 }

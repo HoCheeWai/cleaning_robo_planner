@@ -26,7 +26,8 @@ export type CalculatorAction =
   | { type: 'LOAD_FROM_STORAGE'; inputs: Partial<CalculatorInputs> }
   | { type: 'LOAD_FROM_SPREADSHEET'; inputs: Partial<CalculatorInputs> }
   | { type: 'SET_VALIDATION_ERRORS'; errors: ValidationError[] }
-  | { type: 'CLEAR_VALIDATION_ERROR'; field: string };
+  | { type: 'CLEAR_VALIDATION_ERROR'; field: string }
+  | { type: 'LOAD_SCENARIO'; inputs: CalculatorInputs };
 
 // ===== State =====
 
@@ -231,6 +232,31 @@ function calculatorReducer(state: CalculatorState, action: CalculatorAction): Ca
       return {
         ...state,
         validationErrors: state.validationErrors.filter(e => e.field !== action.field),
+      };
+    }
+
+    case 'LOAD_SCENARIO': {
+      const newInputs = { ...action.inputs };
+      // Determine which fields differ from defaults
+      const newCustomized = new Set<string>();
+      for (const [key, value] of Object.entries(newInputs)) {
+        if (DEFAULT_INPUTS[key as keyof CalculatorInputs] !== value) {
+          newCustomized.add(key);
+        }
+      }
+      // Recompute derived values
+      const numRobots = newInputs.mode === 'time-constraint' ? (newInputs.num_of_robots || 3) : newInputs.num_of_robots;
+      let derived: DerivedValues | null = null;
+      try {
+        derived = computeDerivedValues(newInputs, numRobots);
+      } catch { /* invalid inputs */ }
+      return {
+        ...state,
+        inputs: newInputs,
+        derived,
+        result: null, // Clear result — user must recalculate
+        validationErrors: [],
+        hasCustomizedFields: newCustomized,
       };
     }
 

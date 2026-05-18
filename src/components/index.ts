@@ -10,3 +10,6 @@ export { TimelineChart } from './TimelineChart/TimelineChart';
 export { EfficiencyGraph } from './EfficiencyGraph/EfficiencyGraph';
 export { Header } from './Header/Header';
 export { Footer } from './Footer/Footer';
+export { ScenarioPanel } from './ScenarioPanel/ScenarioPanel';
+export { ComparisonTable } from './ComparisonTable/ComparisonTable';
+export { DeltaBanner } from './DeltaBanner/DeltaBanner';
