@@ -421,6 +421,17 @@ export function generateComparisonPDF(scenarios: SavedScenario[]): Blob {
 
   const body = metricRows.map(row => [row.label, row.baselineValue, ...row.deltas]);
 
+  // Fixed column widths for alignment between metrics and input tables
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const tableWidth = pageWidth - margin * 2;
+  const numCols = headers.length;
+  const firstColWidth = tableWidth * 0.25;
+  const otherColWidth = (tableWidth - firstColWidth) / (numCols - 1);
+  const columnStyles: Record<number, { cellWidth: number }> = { 0: { cellWidth: firstColWidth } };
+  for (let i = 1; i < numCols; i++) {
+    columnStyles[i] = { cellWidth: otherColWidth };
+  }
+
   autoTable(doc, {
     startY: y,
     head: [headers],
@@ -428,6 +439,7 @@ export function generateComparisonPDF(scenarios: SavedScenario[]): Blob {
     margin: { left: margin },
     styles: { fontSize: 9 },
     headStyles: { fillColor: [43, 108, 176], fontStyle: 'bold' },
+    columnStyles,
     didParseCell(data) {
       // Color delta cells
       if (data.section === 'body' && data.column.index > 1) {
@@ -479,6 +491,7 @@ export function generateComparisonPDF(scenarios: SavedScenario[]): Blob {
       margin: { left: margin },
       styles: { fontSize: 9 },
       headStyles: { fillColor: [100, 116, 139], fontStyle: 'bold' },
+      columnStyles,
     });
   }
 
